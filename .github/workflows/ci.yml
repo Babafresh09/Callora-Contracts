@@ -6,21 +6,24 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  check:
-    name: Check
+  test:
+    name: Format, test and build WASM
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+          targets: wasm32v1-none
       - uses: Swatinem/rust-cache@v2
-      - name: Check buildable contract crates
-        run: |
-          cargo check \
-            -p callora-admin -p callora-allowlist -p callora-validators \
-            -p callora-revenue-pool -p callora-storage-migration -p callora-batch-claim \
-            -p callora-distribute -p callora-cold -p callora-emergency -p errors \
-            -p callora-escrow -p callora-fee -p callora-freeze -p callora-helpers \
-            -p callora-hot -p callora-limits -p callora-recipient -p callora-registry \
-            -p callora-refund -p callora-rescue -p callora-stake -p callora-topics \
-            -p callora-upgrade -p callora-yield
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test workspace
+        run: cargo test --workspace
+      - name: Build core contracts to WASM
+        run: cargo build --release --target wasm32v1-none -p callora-vault -p callora-settlement -p callora-revenue-pool
